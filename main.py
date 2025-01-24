@@ -4,12 +4,8 @@ import random
 
 '''
 GOALS: 
-    GET MOUSE DETECTION TO WORK 
-    BE ABLE TO CHANGE THE DIFFERENT GRID PLACES
-    MAYBE GET LINE CLEARS
-
+    get blocks working
 '''
-
 
 class Block:
     def __init__(self,state:bool,pos:tuple,size:int=50):
@@ -46,6 +42,21 @@ class Block_Blast:
 
         pygame.init()
 
+    def clear_rows_and_columns(self):
+        # Track rows and columns with >= 8 "on" blocks
+        rows_to_clear = [row for row in range(self.size) if sum(self.board[(row, block)].state for block in range(self.size)) >= 8]
+        cols_to_clear = [col for col in range(self.size) if sum(self.board[(block, col)].state for block in range(self.size)) >= 8]
+
+        # Clear rows
+        for row in rows_to_clear:
+            for block in range(self.size):
+                self.board[(row, block)].set(False)
+
+        # Clear columns
+        for col in cols_to_clear:
+            for block in range(self.size):
+                self.board[(block, col)].set(False)
+
     def draw(self):
             self.screen.fill("black")
             
@@ -70,17 +81,8 @@ class Block_Blast:
                     good_sprite = [self.board[block] for block in self.board if self.board[block].rect.collidepoint(pos)] 
                     for a in good_sprite:
                         a.set(not a.state)
-            count_of_on = 0
-            orign_board = self.board
-            for row in range(self.size):
-                for block in range(self.size):
-                    if self.board[(row,block)].state == True:
-                        count_of_on += 1
-                if count_of_on >= 8:
-                    for block in range(self.size):
-                        self.board[(row,block)].set(False)
-                count_of_on = 0
 
+            self.clear_rows_and_columns()
             self.draw() 
             self.clock.tick(100)  
 
