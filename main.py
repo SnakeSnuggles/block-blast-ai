@@ -9,9 +9,6 @@ GOALS:
     MAYBE GET LINE CLEARS
 
 '''
- 
-
-
 
 class Block:
     def __init__(self,state:bool,pos:tuple,size:int=50,):
@@ -35,6 +32,7 @@ class Block_Blast:
     def __init__(self):
         self.size = 8 
         self.board:list[Block] = []
+        self.board_state = [[False for x in range(self.size)] for y in range(self.size)]
         self.screen = pygame.display.set_mode((500, 500))
         #self.screen = pygame.display.set_mode((1000,1000))
         self.clock = pygame.time.Clock()
@@ -44,7 +42,8 @@ class Block_Blast:
         self.score = 0
         for x in range(self.size): 
             for y in range(self.size):
-               self.board.append(Block(random.choice([True,False]),(x,y))) 
+                choice = random.choice([True,False]) 
+                self.board.append(Block(choice,(x,y))) 
 
         pygame.init()
 
@@ -70,13 +69,11 @@ class Block_Blast:
                     pos = pygame.mouse.get_pos()
                     good_sprite:list[Block] = [block for block in self.board if block.rect.collidepoint(pos)]
 
-                    print(f"Good sprites: {len(good_sprite)}")
                     for a in good_sprite:
-                        print("got good_sprites")       
                         a.set(not a.state)
 
             self.draw() 
-            self.clock.tick(70)  
+            self.clock.tick(100)  
 
         pygame.quit()
 
