@@ -1,76 +1,103 @@
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-import pygame
+import time
+import pygame 
+import random
 
-class block_blast_env(gym.Env):
-    """
-    Custom 1D environment where the agent moves along a 1D grid to reach the goal.
-    """
-    def __init__(self):
-        super(block_blast_env, self).__init__()
-        
-        # What is needed to do
-        '''
-            the different block shapes need to be implemented 
-            collision of blocks on the board
-            randomly giving the ai random blocks
-            rewarding the ai based on how much score it gets 
-            there need to be a punishment but idk what that would be
+'''
+GOALS: 
+    get blocks working
+'''
 
-            maybe this is not the stratigy I should be going for
-        '''
-        # Define action space: 0 = move left, 1 = move right
-        self.action_space = spaces.Discrete(2)
+class Block:
+    def __init__(self,state:bool,pos:tuple,board_size,screen_size=(500,500)):
+        margin = 50
+        available_width = screen_size[0] - 2 * margin
+        available_height = screen_size[1] - 2 * margin
+        block_width = available_width / board_size
+        block_height = available_height / board_size
 
-        # Define observation space: The agent's position on a grid (0 to 10)
-        self.observation_space = spaces.Box(low=0, high=10, shape=(1,), dtype=np.float32)
+        self.size_image = (block_width, block_height)
+        self.pos = pos
+        self.state = state
 
-        # Environment parameters
-        self.state = 0 # Current position of the agent
-        self.board = np.zeros((8, 8))
-        self.next_peices = np.array([])
-        self.goal_position = 10  # Goal is to reach position 10
+        # Set the block's image and scale it to the calculated size
+        self.set(self.state)
+        self.image = pygame.transform.scale(self.image, self.size_image)
 
+        # Position the block, including margins
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (
+            self.pos[0] * block_width + margin,
+            self.pos[1] * block_height + margin
+        )
 
-    def reset(self, seed=None, options=None):
-        """
-        Reset the environment to the initial state.
-        Returns:
-            - observation (np.array): The initial state as a NumPy array.
-            - info (dict): Additional reset info (empty for now).
-        """
-        super().reset(seed=seed)
-        self.state = 0  # Reset position to the starting point
-        return np.array([self.state], dtype=np.float32), {}
+    def toggle(self):
+       ... 
+    def set(self,new_state:bool):
+        self.image = pygame.image.load("assets/empty_block.png" if new_state == False else "assets/filled_block.png")
+        self.image = pygame.transform.scale(self.image,self.size_image)
+        self.state = new_state
 
-    def step(self, action):
-        # Update state based on action
-        if action == 1:  # Move right
-            self.state += 1
-        elif action == 0:  # Move left
-            self.state -= 1
+class Block_Blast:
+    def __init__(self,size):
+        self.size = size
+        self.board = {}
+        self.screen_size = (500,500)
+        self.screen = pygame.display.set_mode(self.screen_size)
+        #self.screen = pygame.display.set_mode((1000,1000))
+        self.clock = pygame.time.Clock()
+        self.running = True
+        pygame.font.init()
+        self.font = pygame.font.SysFont("Arial",30) 
+        self.score = 0
+        for x in range(self.size): 
+            for y in range(self.size):
+                choice = random.choice([True,False]) 
+                self.board[(x,y)] = Block(choice,(x,y),self.size,self.screen_size)
 
-        # Clip the state to remain within the valid range
-        self.state = np.clip(self.state, 0, 10)
+        pygame.init()
 
-        # Check if the agent has reached the goal
-        done = self.state == self.goal_position
+    def clear_rows_and_columns(self):
+        # Track rows and columns with >= 8 "on" blocks
+        rows_to_clear = [row for row in range(self.size) if sum(self.board[(row, block)].state for block in range(self.size)) >= self.size]
+        cols_to_clear = [col for col in range(self.size) if sum(self.board[(block, col)].state for block in range(self.size)) >= self.size]
 
-        # Assign a reward
-        reward = 1 if done else -0.1  # Encourage progress, reward for reaching the goal
+        # Clear rows
+        for row in rows_to_clear:
+            for block in range(self.size):
+                self.board[(row, block)].set(False)
 
-        return np.array([self.state], dtype=np.float32), reward, done, False, {}
+        # Clear columns
+        for col in cols_to_clear:
+            for block in range(self.size):
+                self.board[(block, col)].set(False)
 
-    def render(self, mode="human"):
-        """
-        Render the environment (e.g., print the current state).
-        """
-        print(f"Agent's Current Position: {self.state}")
-        print(f"Board: {self.board}")
+    def draw(self):
+            self.screen.fill("black")
+            
+            score_text = self.font.render(f"Score: {self.score}", False, (255,255,255))
 
-    def close(self):
-        """
-        Clean up resources if needed (optional).
-        """
-        print("Environment closed.")
+            self.screen.blit(score_text,(20,0))
+            
+            for block in self.board:
+                block = self.board[block]
+                self.screen.blit(block.image,block.rect)
+
+            pygame.display.flip()
+            pygame.display.set_caption(f"FPS: {str(self.clock.get_fps())}")
+    def run(self):
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == pygame.MOUSEBUTTONUP:
+                    pos = pygame.mouse.get_pos()
+
+                    good_sprite = [self.board[block] for block in self.board if self.board[block].rect.collidepoint(pos)] 
+                    for a in good_sprite:
+                        a.set(not a.state)
+
+            self.clear_rows_and_columns()
+            self.draw() 
+            self.clock.tick(100)  
+
+        pygame.quit()
