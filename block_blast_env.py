@@ -2,14 +2,9 @@ import time
 import pygame 
 import random
 
-'''
-GOALS: 
-    get blocks working
-'''
-
 class Block:
     def __init__(self,state:bool,pos:tuple,board_size,screen_size=(500,500)):
-        margin = 50
+        margin = 90
         available_width = screen_size[0] - 2 * margin
         available_height = screen_size[1] - 2 * margin
         block_width = available_width / board_size
@@ -49,6 +44,9 @@ class Block_Blast:
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial",30) 
         self.score = 0
+        self.blocks = ["xoxoxoxo","xxxoxxxoxxx"]
+        self.current_blocks = []
+        self.block_count = 3
         for x in range(self.size): 
             for y in range(self.size):
                 choice = random.choice([True,False]) 
@@ -71,9 +69,13 @@ class Block_Blast:
             for block in range(self.size):
                 self.board[(block, col)].set(False)
 
+        return len(rows_to_clear) * self.size + len(cols_to_clear) * self.size
+    def give_blocks(self):
+        for _ in range(self.block_count):
+            self.current_blocks.append(random.choice(self.blocks))
+        
     def draw(self):
             self.screen.fill("black")
-            
             score_text = self.font.render(f"Score: {self.score}", False, (255,255,255))
 
             self.screen.blit(score_text,(20,0))
@@ -84,20 +86,59 @@ class Block_Blast:
 
             pygame.display.flip()
             pygame.display.set_caption(f"FPS: {str(self.clock.get_fps())}")
-    def run(self):
+
+    def check_blocks_eh(self,block:str,pos):
+        # split into lines and check collison
+        lines = block.split("o")
+
+        x = 0
+        y = 0
+        pos_to_replace = []
+        for line in lines:
+            x = 0
+            for xl in line:
+                new_x = pos[0] + x
+                new_y = pos[1] + y
+
+                # Check if the calculated position is within board bounds
+                if (new_x,new_y) in self.board:
+                    if self.board[(new_x,new_y)].state == True:
+                        print("at least 1 spot is full")
+                        return
+                else:
+                    print(f"Position out of bounds: ({new_x}, {new_y})")
+                    return
+
+                pos_to_replace.append((new_x,new_y))
+                x+=1
+            y+=1
+
+        for posa in pos_to_replace:
+            self.board[posa].set(True)
+
+    def run(self,mode="human"):
         while self.running:
+            if len(self.current_blocks) <= 0:
+                self.give_blocks()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+
                 if event.type == pygame.MOUSEBUTTONUP:
                     pos = pygame.mouse.get_pos()
-
                     good_sprite = [self.board[block] for block in self.board if self.board[block].rect.collidepoint(pos)] 
-                    for a in good_sprite:
-                        a.set(not a.state)
 
-            self.clear_rows_and_columns()
-            self.draw() 
+                    keys = pygame.key.get_mods()
+                    lshift_held = keys & pygame.KMOD_LSHIFT
+                    for a in good_sprite:
+                        self.check_blocks_eh(self.current_blocks[0], a.pos)
+                        self.current_blocks.pop(0)
+                        if lshift_held:
+                            a.set(not a.state)
+
+            self.score += self.clear_rows_and_columns()
+            if mode == "human":
+                self.draw() 
             self.clock.tick(100)  
 
         pygame.quit()
