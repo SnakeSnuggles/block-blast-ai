@@ -4,7 +4,7 @@ import random
 import ai 
 
 class Block:
-    def __init__(self,state:bool,pos:tuple,board_size,screen_size=(500,500)):
+    def __init__(self,state:bool,pos:tuple,board_size,colour,screen_size=(500,500)):
         margin = 90
         available_width = screen_size[0] - 2 * margin
         available_height = screen_size[1] - 2 * margin
@@ -14,9 +14,10 @@ class Block:
         self.size_image = (block_width, block_height)
         self.pos = pos
         self.state = state
+        self.colour = colour
 
         # Set the block's image and scale it to the calculated size
-        self.set(self.state)
+        self.set(self.state,self.colour)
         self.image = pygame.transform.scale(self.image, self.size_image)
 
         # Position the block, including margins
@@ -28,8 +29,23 @@ class Block:
 
     def toggle(self):
        ... 
-    def set(self,new_state:bool):
-        self.image = pygame.image.load("assets/empty_block.png" if new_state == False else "assets/filled_block.png")
+    def set(self,new_state:bool,colour):
+        self.image = pygame.image.load("assets/empty_block.png" if new_state == False else "assets/filled_block.png").convert()
+        new_image = self.image.copy()
+
+        pixels = pygame.PixelArray(new_image)
+
+        in_colour = pygame.Color(colour)
+        
+        r,g,b = in_colour.r,in_colour.g,in_colour.b
+        out_colour = pygame.Color(int(r / 2), int(g / 2), int(b / 2))
+        pixels.replace((255,0,0),in_colour,0,(1,1,1))
+        pixels.replace((128,0,0),out_colour,0,(1,1,1))
+
+
+        self.image = pixels.make_surface()
+        pixels.close()
+        del pixels
         self.image = pygame.transform.scale(self.image,self.size_image)
         self.state = new_state
 
@@ -40,19 +56,19 @@ class Block_Blast:
         self.board = {}
         self.screen_size = (500,500)
         self.screen = pygame.display.set_mode(self.screen_size)
-        #self.screen = pygame.display.set_mode((1000,1000))
         self.clock = pygame.time.Clock()
         self.running = True
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial",30) 
         self.score = 0
         self.blocks = ["xoxoxoxo","xxxx","xxxoxxxoxxx","xxxoxxx","xoxoxxx","xoxoxx"]
+        self.possable_colours = [(255,0,0),(0,255,0),(0,0,255),(149, 0, 255),(255, 242, 0),(255, 140, 0),(0, 247, 247)]
         self.current_blocks = []
         self.block_count = 3
         for x in range(self.size): 
             for y in range(self.size):
                 choice = random.choice([False]) 
-                self.board[(x,y)] = Block(choice,(x,y),self.size,self.screen_size)
+                self.board[(x,y)] = Block(choice,(x,y),self.size,(255,0,0),self.screen_size)
 
         pygame.init()
 
@@ -66,12 +82,12 @@ class Block_Blast:
         # Clear rows
         for row in rows:
             for block in range(self.size):
-                self.board[(row, block)].set(False)
+                self.board[(row, block)].set(False,(255,255,255))
 
         # Clear columns
         for col in cols:
             for block in range(self.size):
-                self.board[(block, col)].set(False)
+                self.board[(block, col)].set(False,(255,255,255))
 
     def give_blocks(self):
         self.current_blocks = [random.choice(self.blocks) for _ in range(self.block_count)]
@@ -114,9 +130,10 @@ class Block_Blast:
                 pos_to_replace.append((new_x,new_y))
                 x+=1
             y+=1
-
+        
+        colour = random.choice(self.possable_colours)
         for posa in pos_to_replace:
-            self.board[posa].set(True)
+            self.board[posa].set(True,colour)
     
     def events(self):
         for event in pygame.event.get():
@@ -131,7 +148,7 @@ class Block_Blast:
                 lshift_held = keys & pygame.KMOD_LSHIFT
                 for a in good_sprite:
                     if lshift_held:
-                        a.set(not a.state)
+                        a.set(not a.state,random.choice(self.possable_colours))
                         continue
                     self.check_blocks_eh(self.current_blocks[self.block_chossen], a.pos)
                     self.current_blocks.pop(self.block_chossen)
@@ -140,7 +157,7 @@ class Block_Blast:
         self.score = 0
         for pos, block in self.board.items():
             if block.state:  # Only reset filled blocks
-                block.set(False)
+                block.set(False,(255,255,255))
         
     def is_valid_move(self, block, pos):
         lines = block.split("o")
