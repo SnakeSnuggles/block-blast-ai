@@ -61,7 +61,7 @@ class Block_Blast:
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial",30) 
         self.score = 0
-        self.blocks = ["xoxoxoxo","xxxx","xxxoxxxoxxx","xxxoxxx","xoxoxxx","xoxoxx"]
+        self.blocks = ["xoxoxo","xoxoxx","xoxox","xxoxx","xxxoxxxoxxx","xx","xox","xxoxxoxx","xxxoxxx","xxxxx","xxox","lxxox","sxxoxx","lsxxoxx","xoxxosx","xoxxosx","xoxxx","lxoxxx","xoxoxoxox","xxoxox","lxoxoxx","xxx","xoxx","lxxxoxox"]
         self.possable_colours = [(255,0,0),(0,255,0),(0,0,255),(149, 0, 255),(255, 242, 0),(255, 140, 0),(0, 247, 247)]
         self.current_blocks = []
         self.block_count = 3
@@ -107,33 +107,14 @@ class Block_Blast:
 
     def check_blocks_eh(self,block:str,pos):
         # split into lines and check collison
-        lines = block.split("o")
-
-        x = 0
-        y = 0
-        pos_to_replace = []
-        for line in lines:
-            x = 0
-            for xl in line:
-                new_x = pos[0] + x
-                new_y = pos[1] + y
-
-                # Check if the calculated position is within board bounds
-                if (new_x,new_y) in self.board:
-                    if self.board[(new_x,new_y)].state == True:
-                        print("at least 1 spot is full")
-                        return
-                else:
-                    print(f"Position out of bounds: ({new_x}, {new_y})")
-                    return
-
-                pos_to_replace.append((new_x,new_y))
-                x+=1
-            y+=1
-        
+        if not self.is_valid_move(block,pos):
+            return
+        poses = self.parser_for_blocks(block,pos)
         colour = random.choice(self.possable_colours)
-        for posa in pos_to_replace:
-            self.board[posa].set(True,colour)
+        for pos in poses:
+            self.board[pos].set(True,colour)
+        self.current_blocks.pop(self.current_blocks.index(block))
+
     
     def events(self):
         for event in pygame.event.get():
@@ -158,22 +139,44 @@ class Block_Blast:
         for pos, block in self.board.items():
             if block.state:  # Only reset filled blocks
                 block.set(False,(255,255,255))
+    def parser_for_blocks(self, block, pos):
+        lines = [line for line in block.split("o") if line]  # Remove empty parts
+        has_l = any("l" in line for line in lines)  # Check if 'l' exists
         
+        max_width = max(len(line) for line in lines)
+        posses = []
+        if has_l:
+            lines = [line.replace("l", "") for line in lines]  # Remove 'l'
+            print(lines)
+            for line_index, line in enumerate(lines):
+                for char_index, char in enumerate(line):
+                    # Shift left by (max width - actual width)
+                    if char == "s":
+                        continue
+                    new_x = pos[0] + max_width - char_index 
+                    new_y = pos[1] + line_index
+                    posses.append((new_x, new_y))
+        else:
+            for line_index, line in enumerate(lines):
+                for char_index, char in enumerate(line):
+                    if char == "s":
+                        continue
+                    posses.append((pos[0] + char_index, pos[1] + line_index))
+
+        return posses
     def is_valid_move(self, block, pos):
-        lines = block.split("o")
-        x, y = pos
 
-        for line_index, line in enumerate(lines):
-            for char_index, char in enumerate(line):
-                check_x = x + char_index
-                check_y = y + line_index
+        poses = self.parser_for_blocks(block,pos)
+        for pos in poses:
+            check_x = pos[0]
+            check_y = pos[1]
+            if check_x < 0 or check_x >= self.size or check_y < 0 or check_y >= self.size:
+                return False
 
-                if check_x < 0 or check_x >= self.size or check_y < 0 or check_y >= self.size:
-                    return False
+            # Check if position is already filled
+            if (check_x, check_y) in self.board and self.board[(check_x, check_y)].state:
+                return False
 
-                # Check if position is already filled
-                if (check_x, check_y) in self.board and self.board[(check_x, check_y)].state:
-                    return False
         return True
     def run(self,mode="human"):
         while self.running:
@@ -183,11 +186,10 @@ class Block_Blast:
             rows,cols,score = self.get_rows_and_colums_to_clear()
             self.clear_rows_and_columns(rows,cols)
             self.score += score
+            self.draw() 
             if mode == "human":
-                self.draw() 
                 self.events()
             if mode == "ai":
-                self.draw() 
                 ai.ai_play(self)
                 time.sleep(0.5)
             

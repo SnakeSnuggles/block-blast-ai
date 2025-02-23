@@ -11,7 +11,7 @@ def ai_play(game):
 
     for piece_index, piece in enumerate(game.current_blocks):
         for pos in empty_spots:  # Only check empty spaces
-            if is_valid_move(game, piece, pos):
+            if game.is_valid_move(piece, pos):
                 score = simulate_move(temp_board, game, piece, pos)
                 if score > best_score:
                     best_score = score
@@ -20,29 +20,15 @@ def ai_play(game):
 
     if best_move:
         game.check_blocks_eh(game.current_blocks[best_piece], best_move)
-        game.current_blocks.pop(best_piece)
         if len(game.current_blocks) <= 0:
             game.give_blocks()
 
-
-def is_valid_move(game, block, pos):
-    lines = block.split("o")
-    x, y = pos
-    for line_index, line in enumerate(lines):
-        for char_index, char in enumerate(line):
-            if (x + char_index, y + line_index) not in game.board:
-                return False
-            if game.board[(x + char_index, y + line_index)].state:
-                return False
-    return True
-
 def simulate_move(board, game, block, pos):
-    """Simulate placing a block and score the move."""
 
-    lines = block.split("o")
-    for line_index, line in enumerate(lines):
-        for char_index, char in enumerate(line):
-            board[(pos[0] + char_index, pos[1] + line_index)] = True
+    poses = game.parser_for_blocks(block,pos)
+    for peice_pos in poses:
+        x,y = peice_pos
+        board[(pos[0] + x, pos[1] + y)] = True
 
     temp_score = fake_clear_rows_and_columns(game, board)
     return temp_score

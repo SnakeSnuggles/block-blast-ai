@@ -4,3 +4,4 @@ size = 8
 game = Block_Blast(size)
 
 game.run("ai")
+# game.run("human")
