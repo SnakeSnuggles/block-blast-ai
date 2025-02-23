@@ -118,9 +118,6 @@ class Block_Blast:
     
     def events(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-
             if event.type == pygame.MOUSEBUTTONUP:
                 pos = pygame.mouse.get_pos()
                 good_sprite = [self.board[block] for block in self.board if self.board[block].rect.collidepoint(pos)] 
@@ -187,11 +184,13 @@ class Block_Blast:
             self.clear_rows_and_columns(rows,cols)
             self.score += score
             self.draw() 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
             if mode == "human":
                 self.events()
             if mode == "ai":
                 ai.ai_play(self)
-                time.sleep(0.5)
             
             move_found = False  
             empty_spots = [pos for pos in self.board if not self.board[pos].state]
