@@ -144,7 +144,6 @@ class Block_Blast:
         posses = []
         if has_l:
             lines = [line.replace("l", "") for line in lines]  # Remove 'l'
-            print(lines)
             for line_index, line in enumerate(lines):
                 for char_index, char in enumerate(line):
                     # Shift left by (max width - actual width)
@@ -187,10 +186,14 @@ class Block_Blast:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        ...
+                        if mode == "ai":
+                            ai.ai_play(self)
+                            # time.sleep(0.2)
             if mode == "human":
                 self.events()
-            if mode == "ai":
-                ai.ai_play(self)
             
             move_found = False  
             empty_spots = [pos for pos in self.board if not self.board[pos].state]
